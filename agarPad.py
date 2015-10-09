@@ -595,7 +595,7 @@ if __name__ == "__main__":
         img_fluo = plt.imread(fluoname) # read fuorescen image
 
         # crop image, both images should be the same size
-        if False:
+        if True:
             rr, cc = img.shape
             img = img[.25*rr:.75*rr, .25*cc:.75*cc]
             rr, cc = img.shape
@@ -612,7 +612,7 @@ if __name__ == "__main__":
         # analize the picture for both phase and fluo intensity
         if True:
             #print 'Phase and fluorescence analysis'
-            hgt_pc, wth_pc, avg_int_cells, tot_int_cells, mean_bg, contour = CellBox(img_adapteq, img_fluo, bfname, pc_int_thr, wth_cut_up, wth_cut_low, True, True, False)
+            hgt_pc, wth_pc, avg_int_cells, tot_int_cells, mean_bg, contour = CellBox(img_adapteq, img_fluo, bfname, pc_int_thr, wth_cut_up, wth_cut_low, True, True, True)
 
         if False:
             #print 'Fluorescence analysis'
