@@ -23,6 +23,7 @@ from termcolor import colored
 from os import listdir
 from os.path import isfile, join
 import glob # for path name finding
+import yaml # for parameter loading
 
 # if this is being done in ipython
 try:
@@ -127,8 +128,7 @@ def CellBox(img, imgfluo, fpath, pc_int_thr, wth_cut_up, wth_cut_low,
     # boundary = 20 this variable is globals from the .yaml
     for h, cnt in reversed(list(enumerate(contours))):
         for tmp in cnt:
-            if (tmp[0][1] < boundary or tmp[0][1] > im_height-boundary or
-                    tmp[0][0] < boundary or tmp[0][0] > im_width-boundary):
+            if (tmp[0][1] < params['boundary'] or tmp[0][1] > im_height - params['boundary'] or tmp[0][0] < params['boundary'] or tmp[0][0] > im_width - params['boundary']):
                 del contours[h]
                 break
 
@@ -153,29 +153,28 @@ def CellBox(img, imgfluo, fpath, pc_int_thr, wth_cut_up, wth_cut_low,
 
         ### filter contours that are not cell
         # if the area is too small then delete that cell
-        if area < params[min_area]:
+        if area < params['min_area']:
             del contours[h]
             continue
 
         # if the cell has a crazy shape delete it
         rectangle = length * width
-        if rectangle / area > params[rect_to_area]:
+        if rectangle / area > params['rect_to_area']:
             del contours[h]
             continue
 
         # delete cells with weird aspect ratio
-        if length / width < params[min_aspect_ratio] or \
-        length / width > params[max_aspect_ratio]:
+        if length / width < params['min_aspect_ratio'] or length / width > params['max_aspect_ratio']:
            del contours[h]
            continue
 
         # excluding short and long cells
-         if length > params[con_max_l] or length < params[con_min_l]:
-             del contours[h]
-             continue
+        if length > params['con_max_l'] or length < params['con_min_l']:
+            del contours[h]
+            continue
 
         # excluding based on width limits
-        if width > params[con_max_w] or width < params[con_min_w]:
+        if width > params['con_max_w'] or width < params['con_min_w']:
             del contours[h]
             continue
 
@@ -545,7 +544,9 @@ if __name__ == "__main__":
     params = yaml.safe_load(f)
     f.close()
 
-    path = params[path_to_tiffs] # path to image folder
+    print(params)
+
+    path = params['path_to_tiffs'] # path to image folder
     BFfiles = glob.glob(path+"/*c1.tif") # phase or bright field images
     Fluofiles = glob.glob(path+"/*c2.tif") # fluorescent images
 
@@ -567,15 +568,15 @@ if __name__ == "__main__":
         del Fluofiles[0]
 
     print colored("========================================================", 'red')
-    print "     ", colored(sys.argv[1], 'green')
+    print "     ", colored(params['experiment_name'], 'green')
     print('Found %d files:' % len(BFfiles))
     print colored("========================================================\n", 'red')
 
     # user defined thesholds and whatnot
     pxl2um = 0.065 # pixel to um conversion... seems crude
-    pc_int_thr = float(sys.argv[2]) # threshold for profile
-    wth_cut_up = float(sys.argv[3]) #
-    wth_cut_low = float(sys.argv[4])
+    pc_int_thr = params['pc_int_thr'] # threshold for profile
+    wth_cut_up = params['wth_cut_up'] #
+    wth_cut_low = params['wth_cut_low']
 
     # these array hold all data for all pictures
     a_wth=[]
@@ -661,7 +662,7 @@ if __name__ == "__main__":
 
     text = 'length = ' + str(l)[:6] + 'um, width = ' + str(w)[:6] + 'um, volume = ' + str(v)[:6] + 'um^3'
     print colored("========================================================", 'red')
-    print "     ", colored(sys.argv[1], 'green')
+    print "     ", colored(params['experiment_name'], 'green')
     print colored("========================================================", 'red')
     print colored(text,'yellow')
     print colored("========================================================", 'red')
@@ -673,7 +674,7 @@ if __name__ == "__main__":
     array[:,1] = a_wth
     array[:,2] = a_vol
 
-    fname = path+'_'+sys.argv[2]+'_'+sys.argv[3]+ '_'+ sys.argv[4]+ '_pc.txt'
+    fname = params['experiment_name'] + '_pc.txt'
     np.savetxt(fname, array, delimiter=',')
 
     # shape data into array
@@ -684,7 +685,7 @@ if __name__ == "__main__":
     #array[:,2] = a_relative_intensity
 
     # save file as csv
-    fname = path + '_fluor.txt'
+    fname = params['experiment_name'] + '_fluor.txt'
     np.savetxt(fname, array, delimiter=',')
 
     # additional print files

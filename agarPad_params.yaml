@@ -1,9 +1,10 @@
 # Parameter file for agarPad.py imaging script.
 
 ### Experimental information
-experiment_name: 'put_name_here'
-
-path_to_tiffs: '/Users/jt/drive/code/agarPad/fewTIFF'
+# this will be used to identify the experiment when saving the output data
+experiment_name: 'yyyymmdd_experiment'
+# path to
+path_to_tiffs: '/Users/jt/drive/code/agarPad/fewTIFF/'
 
 
 
