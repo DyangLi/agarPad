@@ -1,0 +1,44 @@
+# Parameter file for agarPad.py imaging script.
+
+### Experimental information
+experiment_name: 'put_name_here'
+
+path_to_tiffs: '/Users/jt/drive/code/agarPad/fewTIFF'
+
+
+
+### Contour filtering parameters
+# These parameters remove contours (suspected cells) based on size and shape,
+# which come into play during intial contour finding (not during phase contrast
+# sizing or fluorescent analysis).
+
+# If cells are with this number of pixels from the edge of the image (after
+# cropping), they will be removed. This excludes cells that may be cut off by
+# the image edge.
+boundary: 20
+
+# If the contour has an area less than this value in square pixels, discard.
+min_area: 100
+
+# If the ratio of the area of a bounding box around the countour to the area of
+# the actual countour is greater than this value, discard. This excludes cells
+# that do not lie straight or have a funny shape.
+rect_to_area: 1.5
+
+# Aspect ratio limits (length/width)
+min_aspect_ratio: 1.2
+max_aspect_ratio: 15
+
+# Countour width and length limits, all are in pixels
+con_min_w: 5 # min width
+con_max_w: 23 # max width
+con_min_l: 5 # min length
+con_max_l: 100 # max length
+
+### Phase contrast size analysis parameters
+# These parameters are used during phase contrast sizing.
+pc_int_thr: 0.75
+
+wth_cut_up: 1.4
+
+wth_cut_low: 0.6
