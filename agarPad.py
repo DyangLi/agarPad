@@ -1,14 +1,14 @@
-# -*- coding: utf-8 -*-
 """
 Created on Tue Jan 13 11:06:17 2015
 Edited on Fri Sep 18 by jt
 Edited on Fri Sep 29 by jt -- added pc size analysis
-
+Edited on Thr Oct 15 by jt -- added parameter file support
 @author: yonggun
 """
 
 # import modules
 #from __future__ import division
+import os, sys, getopt, time
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib
@@ -18,13 +18,11 @@ from skimage.filters import threshold_otsu
 from skimage import measure
 from skimage import exposure
 import cv2 # openCV
-import os
 from termcolor import colored
 from os import listdir
 from os.path import isfile, join
 import glob # for path name finding
-import sys
-import time
+import yaml # for parameter loading
 
 # if this is being done in ipython
 try:
@@ -37,11 +35,9 @@ except ImportError:
 ### functions
 def find_threshold(profile, thr):
     '''This travels along a profile and finds the point at which a certain threshold is met. It then uses a linear fit to find where the threhold was met with sub pixel resolution.
-
     INPUTS
     profile     linear intensity profile
     thr         threshold from 0 to 1 from which to find a point
-
     OUTPUTS
     thr_pt      point along the profile that the threshold is met
     '''
@@ -69,11 +65,9 @@ def find_threshold(profile, thr):
         n += 1 # update position
     return thr_pt
 
-def CellBox(img, imgfluo, fpath, pc_int_thr, wth_cut_up, wth_cut_low,
-            meas_pc=True, meas_int=True, qc=False):
+def CellBox(img, imgfluo, fpath):
     '''This function finds boxes around the cells and calculates sizes and
     intensities.
-
     INPUTS
     img         phase contrast or bright field image
     imgfluo     fluorescent channel image
@@ -85,11 +79,11 @@ def CellBox(img, imgfluo, fpath, pc_int_thr, wth_cut_up, wth_cut_low,
     meas_pc     boolean for if sizes should be measured from phase image
     meas_int    boolean for if average and total fluorecence intensity should
                 be measured
-    qc          for quality control, aka verbose mode
-
+    params['qc']          for quality control, aka verbose mode
     OUTPUTS
-
     '''
+    # define some variables from the params dictionary
+    pxl2um = params['pxl2um']
 
     ############################################################################
     # find all the cells using contouring
@@ -114,7 +108,7 @@ def CellBox(img, imgfluo, fpath, pc_int_thr, wth_cut_up, wth_cut_low,
     contours, hierarchy = cv2.findContours(img_inv, cv2.RETR_EXTERNAL,
                                            cv2.CHAIN_APPROX_SIMPLE, (0,0))
 
-    if qc:
+    if params['qc']:
         print('Number of found contours:', len(contours))
 
     ############################################################################
@@ -126,11 +120,10 @@ def CellBox(img, imgfluo, fpath, pc_int_thr, wth_cut_up, wth_cut_low,
 
     # get rid of cells that are in the boundary of the image
     im_height, im_width = img.shape
-    boundary = 20
+    # boundary = 20 this variable is globals from the .yaml
     for h, cnt in reversed(list(enumerate(contours))):
         for tmp in cnt:
-            if (tmp[0][1] < boundary or tmp[0][1] > im_height-20 or
-                    tmp[0][0] < boundary or tmp[0][0] > im_width-20):
+            if (tmp[0][1] < params['boundary'] or tmp[0][1] > im_height - params['boundary'] or tmp[0][0] < params['boundary'] or tmp[0][0] > im_width - params['boundary']):
                 del contours[h]
                 break
 
@@ -155,33 +148,28 @@ def CellBox(img, imgfluo, fpath, pc_int_thr, wth_cut_up, wth_cut_low,
 
         ### filter contours that are not cell
         # if the area is too small then delete that cell
-        if area < 100:
+        if area < params['min_area']:
             del contours[h]
             continue
 
         # if the cell has a crazy shape delete it
         rectangle = length * width
-        if rectangle / area > 1.5:
+        if rectangle / area > params['rect_to_area']:
             del contours[h]
             continue
 
         # delete cells with weird aspect ratio
-        if length / width < 1.2: # or length/width>15:
+        if length / width < params['min_aspect_ratio'] or length / width > params['max_aspect_ratio']:
            del contours[h]
            continue
 
-        # this is long cells for stat cells
-        if length / width > 15:
-            del contours[h]
-            continue
-
         # excluding short and long cells
-        if length > 100 or length < 5:
+        if length > params['con_max_l'] or length < params['con_min_l']:
             del contours[h]
             continue
 
-        # delete cells that are too wide or too small
-        if width > 23 or width < 5:
+        # excluding based on width limits
+        if width > params['con_max_w'] or width < params['con_min_w']:
             del contours[h]
             continue
 
@@ -192,14 +180,18 @@ def CellBox(img, imgfluo, fpath, pc_int_thr, wth_cut_up, wth_cut_low,
     ### end loop finding throwing out contours
 
     # print number of filtered contours per image
-    if qc:
+    if params['qc']:
         print('Number of found cells after initial filtering:', len(contours))
 
     ############################################################################
     ### Go through all the contours (the found cells), and calculate values
 
     ### phase contrast analysis
-    if meas_pc:
+    if params['meas_pc']:
+
+        # define some variables from the global parameter dictionary
+        pc_int_thr = params['pc_int_thr']
+
         wth_pc = [] # width of cell pc
         hgt_pc = [] # height of cell pc
 
@@ -286,7 +278,7 @@ def CellBox(img, imgfluo, fpath, pc_int_thr, wth_cut_up, wth_cut_low,
                 ll = r_th - l_th # length
 
             # save variables for plotting later
-            if qc:
+            if params['qc']:
                 xxx_l = xxx
                 kkk_pc_r_l = kkk_pc_r
                 avg_l = avg
@@ -397,10 +389,10 @@ def CellBox(img, imgfluo, fpath, pc_int_thr, wth_cut_up, wth_cut_low,
                 if np.isnan(ll) or np.isnan(ww):
                     del contours[h]
                     continue
-                elif ll <= 1 or ww <= wth_cut_low/pxl2um:
+                elif ll <= 1 or ww <= params['wth_cut_low']/pxl2um:
                     del contours[h]
                     continue
-                elif ll > 150 or ww > wth_cut_up/pxl2um:
+                elif ll > 150 or ww > params['wth_cut_up']/pxl2um:
                     del contours[h]
                     continue
                 else:
@@ -408,7 +400,7 @@ def CellBox(img, imgfluo, fpath, pc_int_thr, wth_cut_up, wth_cut_low,
                     wth_pc=np.append(wth_pc, ww)
 
             # plot the cell and associated profiles
-            if qc:
+            if params['qc']:
                 # draw contour on image mask for plotting
                 cv2.drawContours(img_mask, [cnt], -1, 100, 3)
 
@@ -445,7 +437,7 @@ def CellBox(img, imgfluo, fpath, pc_int_thr, wth_cut_up, wth_cut_low,
     ############################################################################
     # measure fluorescence intensities
     # this goes after pc analysis, because pc analysis will throw out cells
-    if meas_int:
+    if params['meas_int']:
         avg_int_cells = [] # numpy array with average intensity per cell
         tot_int_cells = [] # numpy array with total intensity per cell
 
@@ -479,7 +471,7 @@ def CellBox(img, imgfluo, fpath, pc_int_thr, wth_cut_up, wth_cut_low,
             cv2.drawContours(img_mask,[cnt],-1,100,2)
 
     # display contours for whole picture
-    if qc:
+    if params['qc']:
         plt.figure(figsize=(16,16), dpi=80)
         plt.title(fpath)
         plt.imshow(img_mask, cmap=plt.cm.gray, interpolation='nearest')
@@ -487,11 +479,11 @@ def CellBox(img, imgfluo, fpath, pc_int_thr, wth_cut_up, wth_cut_low,
 
     ############################################################################
     ### return data based on what analysis was done
-    if meas_pc and not meas_int:
+    if params['meas_pc'] and not params['meas_int']:
         return hgt_pc, wth_pc, 0, 0, 0, img_mask
-    elif not meas_pc and meas_int:
+    elif not params['meas_pc'] and params['meas_int']:
         return hgt_box, wth_box, avg_int_cells, tot_int_cells, mean_background[0], img_mask
-    elif meas_pc and meas_int:
+    elif params['meas_pc'] and params['meas_int']:
         return hgt_pc, wth_pc, avg_int_cells, tot_int_cells, mean_background[0], img_mask
 
 ################################################################################
@@ -505,39 +497,45 @@ if __name__ == "__main__":
     cells, but fluorecence imaging is optional. Calculating size information
     based on the pc profile is also opitional, in which case simply the box
     size around the cell will be used to calculate length and width.
-
-    This script is called with the path to the image files with the first
-    argument, and then three other arguments that filter cells out based on
-    their size.
-
-    > python agarPad.py 'path/to/TIFFs/' pc_int_thr wth_cut_up
-    wth_cut_low
-    e.g.
-    > python agarPad.py './TIFF/' 0.75 1.4 0.6
-
+    This script is called with reference to a parameters file which holds both
+    the path to the image files as well as other parameters and switches.
+    > python agarPad.py -f './agarPad_parameters.yaml'
     It saves two files, one with size information and one with
     fluorescent intensity information.
-
     INPUTS
-    path	 path to the directory where the .tif files are
-    pc_int_thr  threshold from 0 to 1 to decide where cell boundary is during
-                phase contrast sizing
-    wth_cut_up  upper bound of acceptable cell width in microns
-    wth_cut_low lower bound of acceptable cell width in microns
-
+    parameters.yaml     Holds all parameter and path information. Description of
+                        the parameters are in that file.
     OUTPUTS
     path/pathname_pc.txt        size information per cell in three columns:
                                 length, width, volume
     path/pathname_fluor.txt     fluorescence intensity information per cell in
                                 three columns: average intensity, total
                                 intensity, and background intensity
-
-    Additionally there are some hard coded parameters. pxl2um indicates the pixel to micron conversion.
+    Additionally there are some hard coded parameters.
     """
 
-    path = sys.argv[1] # path to image folder
+    # get arguments and parameters
+    # switches
+    try:
+        opts, args = getopt.getopt(sys.argv[1:],"f:")
+    except getopt.GetoptError:
+        print('No arguments detected.')
+    for opt, arg in opts:
+        if opt == '-f':
+            param_file = arg
+
+    # load the parameter file
+    f = open(param_file)
+    global params
+    params = yaml.safe_load(f)
+    f.close()
+
+    print(params)
+
+    path = params['path_to_tiffs'] # path to image folder
     BFfiles = glob.glob(path+"/*c1.tif") # phase or bright field images
     Fluofiles = glob.glob(path+"/*c2.tif") # fluorescent images
+
 
     # # used to save the profiles
     # profile_path = path+"/profile"
@@ -556,15 +554,15 @@ if __name__ == "__main__":
         del Fluofiles[0]
 
     print colored("========================================================", 'red')
-    print "     ", colored(sys.argv[1], 'green')
+    print "     ", colored(params['experiment_name'], 'green')
     print('Found %d files:' % len(BFfiles))
     print colored("========================================================\n", 'red')
 
     # user defined thesholds and whatnot
-    pxl2um = 0.065 # pixel to um conversion... seems crude
-    pc_int_thr = float(sys.argv[2]) # threshold for profile
-    wth_cut_up = float(sys.argv[3]) #
-    wth_cut_low = float(sys.argv[4])
+    pxl2um = params['pxl2um'] # pixel to um conversion... seems crude
+    #pc_int_thr = params['pc_int_thr'] # threshold for profile
+    #wth_cut_up = params['wth_cut_up'] #
+    #wth_cut_low = params['wth_cut_low']
 
     # these array hold all data for all pictures
     a_wth=[]
@@ -595,27 +593,22 @@ if __name__ == "__main__":
         img_fluo = plt.imread(fluoname) # read fuorescen image
 
         # crop image, both images should be the same size
-        if True:
+        if params['crop_image']:
             rr, cc = img.shape
-            img = img[.25*rr:.75*rr, .25*cc:.75*cc]
-            img_fluo = img_fluo[.25*rr:.75*rr, .25*cc:.75*cc]
+            # rr, cc = img.shape
+            # img = img[.25*rr:.75*rr, .25*cc:.75*cc]
+            # rr, cc = img.shape
+            # img_fluo = img_fluo[0:rr, 0:cc]
+            img = img[params['row_start']*rr:params['row_end']*rr,
+             params['col_start']*cc:params['col_end']*cc]
+            img_fluo = img_fluo[params['row_start']*rr:params['row_end']*rr,
+             params['col_start']*cc:params['col_end']*cc]
 
         # equalize
         img_adapteq = exposure.equalize_adapthist(img, clip_limit=0.005)
 
-        ### analize the picture for just phase
-        if False:
-            #print 'Phase analysis'
-            hgt_pc, wth_pc, avg_int_cells, tot_int_cells, mean_bg, contour = CellBox(img_adapteq, img_fluo, bfname, pc_int_thr, wth_cut_up, wth_cut_low, True, False, False)
-
-        # analize the picture for both phase and fluo intensity
-        if True:
-            #print 'Phase and fluorescence analysis'
-            hgt_pc, wth_pc, avg_int_cells, tot_int_cells, mean_bg, contour = CellBox(img_adapteq, img_fluo, bfname, pc_int_thr, wth_cut_up, wth_cut_low, True, True, False)
-
-        if False:
-            #print 'Fluorescence analysis'
-            hgt_pc, wth_pc, avg_int_cells, tot_int_cells, mean_bg, contour = CellBox(img_adapteq, img_fluo, bfname, pc_int_thr, wth_cut_up, wth_cut_low, False, True, True)
+        ### Run analysis
+        hgt_pc, wth_pc, avg_int_cells, tot_int_cells, mean_bg, contour = CellBox(img_adapteq, img_fluo, bfname)
 
         # append data phase
         #print '===> Number of cells found is', len(hgt_pc), '<==='
@@ -649,7 +642,7 @@ if __name__ == "__main__":
 
     text = 'length = ' + str(l)[:6] + 'um, width = ' + str(w)[:6] + 'um, volume = ' + str(v)[:6] + 'um^3'
     print colored("========================================================", 'red')
-    print "     ", colored(sys.argv[1], 'green')
+    print "     ", colored(params['experiment_name'], 'green')
     print colored("========================================================", 'red')
     print colored(text,'yellow')
     print colored("========================================================", 'red')
@@ -661,7 +654,7 @@ if __name__ == "__main__":
     array[:,1] = a_wth
     array[:,2] = a_vol
 
-    fname = path+'_'+sys.argv[2]+'_'+sys.argv[3]+ '_'+ sys.argv[4]+ '_pc.txt'
+    fname = params['experiment_name'] + '_pc.txt'
     np.savetxt(fname, array, delimiter=',')
 
     # shape data into array
@@ -672,7 +665,7 @@ if __name__ == "__main__":
     #array[:,2] = a_relative_intensity
 
     # save file as csv
-    fname = path + '_fluor.txt'
+    fname = params['experiment_name'] + '_fluor.txt'
     np.savetxt(fname, array, delimiter=',')
 
     # additional print files

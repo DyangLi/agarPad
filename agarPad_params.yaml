@@ -52,7 +52,7 @@ max_aspect_ratio: 15
 con_min_w: 5 # min width
 con_max_w: 23 # max width
 con_min_l: 5 # min length
-con_max_l: 100 # max length
+con_max_l: 150 # max length
 
 ### Phase contrast size analysis parameters
 # These parameters are used during phase contrast sizing.
