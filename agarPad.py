@@ -171,14 +171,14 @@ def CellBox(img, imgfluo, fpath, pc_int_thr, wth_cut_up, wth_cut_low,
            continue
 
         # this is long cells for stat cells
-        # if length / width > 3:
-        #     del contours[h]
-        #     continue
+        if length / width > 15:
+            del contours[h]
+            continue
 
-        # no long cells (stat only)
-        # if length > 30:
-        #     del contours[h]
-        #     continue
+        # excluding short and long cells
+        if length > 100 or length < 5:
+            del contours[h]
+            continue
 
         # delete cells that are too wide or too small
         if width > 23 or width < 5:
@@ -595,7 +595,7 @@ if __name__ == "__main__":
         img_fluo = plt.imread(fluoname) # read fuorescen image
 
         # crop image, both images should be the same size
-        if True:
+        if False:
             rr, cc = img.shape
             img = img[.25*rr:.75*rr, .25*cc:.75*cc]
             rr, cc = img.shape
@@ -610,11 +610,11 @@ if __name__ == "__main__":
             hgt_pc, wth_pc, avg_int_cells, tot_int_cells, mean_bg, contour = CellBox(img_adapteq, img_fluo, bfname, pc_int_thr, wth_cut_up, wth_cut_low, True, False, False)
 
         # analize the picture for both phase and fluo intensity
-        if False:
-            #print 'Phase and fluorescence analysis'
-            hgt_pc, wth_pc, avg_int_cells, tot_int_cells, mean_bg, contour = CellBox(img_adapteq, img_fluo, bfname, pc_int_thr, wth_cut_up, wth_cut_low, True, True, True)
-
         if True:
+            #print 'Phase and fluorescence analysis'
+            hgt_pc, wth_pc, avg_int_cells, tot_int_cells, mean_bg, contour = CellBox(img_adapteq, img_fluo, bfname, pc_int_thr, wth_cut_up, wth_cut_low, True, True, False)
+
+        if False:
             #print 'Fluorescence analysis'
             hgt_pc, wth_pc, avg_int_cells, tot_int_cells, mean_bg, contour = CellBox(img_adapteq, img_fluo, bfname, pc_int_thr, wth_cut_up, wth_cut_low, False, True, True)
 

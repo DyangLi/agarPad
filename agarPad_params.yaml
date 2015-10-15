@@ -1,12 +1,30 @@
 # Parameter file for agarPad.py imaging script.
 
 ### Experimental information
-# this will be used to identify the experiment when saving the output data
-experiment_name: 'yyyymmdd_experiment'
-# path to
+# This will be used to identify the experiment when saving the output data
+experiment_name: 'crop_experiment_1'
+# Path to .tif files
 path_to_tiffs: '/Users/jt/drive/code/agarPad/fewTIFF/'
 
+# Boolean values indicating what type of analysis should be done.
+meas_pc: True # Do threshold based phase contrast size analysis
+meas_int: True # Do fluorecence intensity analysis
 
+# Quality control or debug mode Boolean
+qc: False
+
+# Image cropping. Indicate if the imaged should be cropped before analysis. The
+# values indicate what part of the image should be analyzed. For example,
+# row_start = 0, row_end = 1, col_start = 0, col_end 0.5, would be the top
+# half of the image.
+crop_image: False
+row_start: 0.25 # value between 0 and 1, measured from image left edge
+row_end: 0.75 # value between 0 and 1, greater than row_start
+col_start: 0.25 # value between 0 and 1, measured from image top edge
+col_end: 0.75 # value between 0 and 1, greater than row_start
+
+# pixel to micron conversion
+pxl2um: 0.065
 
 ### Contour filtering parameters
 # These parameters remove contours (suspected cells) based on size and shape,
@@ -38,8 +56,10 @@ con_max_l: 100 # max length
 
 ### Phase contrast size analysis parameters
 # These parameters are used during phase contrast sizing.
+# threshold from 0 to 1 to decide where cell boundary is during phase contrast
+# sizing
 pc_int_thr: 0.75
 
-wth_cut_up: 1.4
-
-wth_cut_low: 0.6
+# width based measures
+wth_cut_up: 1.4 # upper bound of acceptable cell width in microns
+wth_cut_low: 0.6 # lower bound of acceptable cell width in microns
