@@ -610,14 +610,14 @@ if __name__ == "__main__":
         # crop image, both images should be the same size
         if params['crop_image']:
             rr, cc = img.shape
-            rr, cc = img.shape
-            img = img[.25*rr:.75*rr, .25*cc:.75*cc]
-            rr, cc = img.shape
-            img_fluo = img_fluo[0:rr, 0:cc]
-            # img = img[params['row_start']*rr:params['row_end']*rr,
-            #  params['col_start']*cc:params['col_end']*cc]
-            # img_fluo = img_fluo[params['row_start']*rr:params['row_end']*rr,
-            #  params['col_start']*cc:params['col_end']*cc]
+            # rr, cc = img.shape
+            # img = img[.25*rr:.75*rr, .25*cc:.75*cc]
+            # rr, cc = img.shape
+            # img_fluo = img_fluo[0:rr, 0:cc]
+            img = img[params['row_start']*rr:params['row_end']*rr,
+             params['col_start']*cc:params['col_end']*cc]
+            img_fluo = img_fluo[params['row_start']*rr:params['row_end']*rr,
+             params['col_start']*cc:params['col_end']*cc]
 
         # equalize
         img_adapteq = exposure.equalize_adapthist(img, clip_limit=0.005)

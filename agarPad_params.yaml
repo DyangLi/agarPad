@@ -17,7 +17,7 @@ qc: False
 # values indicate what part of the image should be analyzed. For example,
 # row_start = 0, row_end = 1, col_start = 0, col_end 0.5, would be the top
 # half of the image.
-crop_image: False
+crop_image: True
 row_start: 0.25 # value between 0 and 1, measured from image left edge
 row_end: 0.75 # value between 0 and 1, greater than row_start
 col_start: 0.25 # value between 0 and 1, measured from image top edge

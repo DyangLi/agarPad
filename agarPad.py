@@ -595,11 +595,10 @@ if __name__ == "__main__":
         img_fluo = plt.imread(fluoname) # read fuorescen image
 
         # crop image, both images should be the same size
-        if False:
+        if True:
             rr, cc = img.shape
             img = img[.25*rr:.75*rr, .25*cc:.75*cc]
-            rr, cc = img.shape
-            img_fluo = img_fluo[0:rr, 0:cc]
+            img_fluo = img_fluo[.25*rr:.75*rr, .25*cc:.75*cc]
 
         # equalize
         img_adapteq = exposure.equalize_adapthist(img, clip_limit=0.005)
