@@ -654,7 +654,7 @@ if __name__ == "__main__":
     array[:,1] = a_wth
     array[:,2] = a_vol
 
-    fname = params['experiment_name'] + '_pc.txt'
+    fname = params['path_analysis'] + params['experiment_name'] + '_pc.txt'
     np.savetxt(fname, array, delimiter=',')
 
     # shape data into array
@@ -665,7 +665,7 @@ if __name__ == "__main__":
     #array[:,2] = a_relative_intensity
 
     # save file as csv
-    fname = params['experiment_name'] + '_fluor.txt'
+    fname = params['path_analysis'] + params['experiment_name'] + '_fluor.txt'
     np.savetxt(fname, array, delimiter=',')
 
     # additional print files
