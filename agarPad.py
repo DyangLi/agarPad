@@ -155,7 +155,7 @@ def CellBox(img, imgfluo, fpath, pc_int_thr, wth_cut_up, wth_cut_low,
 
         ### filter contours that are not cell
         # if the area is too small then delete that cell
-        if area < 200:
+        if area < 100:
             del contours[h]
             continue
 
@@ -610,11 +610,11 @@ if __name__ == "__main__":
             hgt_pc, wth_pc, avg_int_cells, tot_int_cells, mean_bg, contour = CellBox(img_adapteq, img_fluo, bfname, pc_int_thr, wth_cut_up, wth_cut_low, True, False, False)
 
         # analize the picture for both phase and fluo intensity
-        if True:
+        if False:
             #print 'Phase and fluorescence analysis'
             hgt_pc, wth_pc, avg_int_cells, tot_int_cells, mean_bg, contour = CellBox(img_adapteq, img_fluo, bfname, pc_int_thr, wth_cut_up, wth_cut_low, True, True, True)
 
-        if False:
+        if True:
             #print 'Fluorescence analysis'
             hgt_pc, wth_pc, avg_int_cells, tot_int_cells, mean_bg, contour = CellBox(img_adapteq, img_fluo, bfname, pc_int_thr, wth_cut_up, wth_cut_low, False, True, True)
 
